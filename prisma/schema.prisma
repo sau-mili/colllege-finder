@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Authentication Models
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  savedColleges SavedCollege[]
+  reviews       Review[]
+  comparisons   Comparison[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// College Models
+model College {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  location    String
+  city        String
+  state       String
+  type        String // Private, Government, Deemed
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  fees        Int // Annual fees in INR
+  established Int?
+  image       String?
+  overview    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  courses     Course[]
+  placements  Placement[]
+  reviews     Review[]
+  savedBy     SavedCollege[]
+  comparisons Comparison[]
+  cutoffs     Cutoff[]
+
+  @@index([city])
+  @@index([state])
+  @@index([rating])
+  @@index([fees])
+}
+
+model Course {
+  id        String @id @default(cuid())
+  name      String
+  duration  String
+  fees      Int
+  seats     Int?
+  collegeId String
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model Placement {
+  id             String @id @default(cuid())
+  year           Int
+  averagePackage Int // In LPA * 100000
+  highestPackage Int
+  placementRate  Int // Percentage
+  topRecruiters  String // Comma-separated
+  collegeId      String
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int // 1-5
+  title     String
+  content   String
+  pros      String?
+  cons      String?
+  createdAt DateTime @default(now())
+  userId    String
+  collegeId String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model SavedCollege {
+  id        String   @id @default(cuid())
+  userId    String
+  collegeId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, collegeId])
+}
+
+model Comparison {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  colleges  College[] // Many-to-many relationship
+  createdAt DateTime  @default(now())
+}
+
+model Exam {
+  id      String   @id @default(cuid())
+  name    String   @unique // e.g., "JEE Main"
+  cutoffs Cutoff[]
+}
+
+model Cutoff {
+  id        String  @id @default(cuid())
+  rank      Int
+  year      Int
+  collegeId String
+  college   College @relation(fields: [collegeId], references: [id])
+  examId    String
+  exam      Exam    @relation(fields: [examId], references: [id])
+}
+
+model GeneralQuestion {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  createdAt DateTime @default(now())
+}
