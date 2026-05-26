@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// The context type now correctly identifies params as a Promise
+// The context parameter MUST be defined exactly like this for the build to pass
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // You MUST await the params before accessing them
+    // 1. You MUST await the params object
     const { slug } = await context.params;
 
+    // 2. Now you can use the slug to query your database
     const college = await prisma.college.findUnique({
       where: { slug: slug },
       include: {
